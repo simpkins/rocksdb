@@ -225,6 +225,27 @@ TEST_F(RepairTest, SeparateWalDir) {
  } while(ChangeWalOptions());
 }
 
+TEST_F(RepairTest, RepairWithoutFlush) {
+  Options opts(CurrentOptions());
+  CreateColumnFamilies({"family1", "family2"}, opts);
+  ReopenWithColumnFamilies({"default", "family1", "family2"}, opts);
+
+  // Add some data.  Do not explicitly call flush.
+  Put(0, "key", "val");
+  Put(1, "key2", "val2");
+  Put(2, "key3", "val3");
+  Close();
+
+  // Call repair, even though the DB should still be valid.
+  ASSERT_OK(RepairDB(dbname_, opts));
+
+  // Confirm the data is still there.
+  ReopenWithColumnFamilies({"default", "family1", "family2"}, opts);
+  ASSERT_EQ(Get(0, "key"), "val");
+  ASSERT_EQ(Get(1, "key2"), "val2");
+  ASSERT_EQ(Get(2, "key3"), "val3");
+}
+
 TEST_F(RepairTest, RepairMultipleColumnFamilies) {
   // Verify repair logic associates SST files with their original column
   // families.
