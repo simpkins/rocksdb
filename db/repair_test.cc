@@ -225,6 +225,22 @@ TEST_F(RepairTest, SeparateWalDir) {
  } while(ChangeWalOptions());
 }
 
+TEST_F(RepairTest, DeleteRange) {
+  Options opts(CurrentOptions());
+  CreateColumnFamilies({"family1"}, opts);
+  ReopenWithColumnFamilies({"default", "family1"}, opts);
+
+  WriteOptions writeOptions;
+  std::string beginKey;
+  std::string endKey(
+      21, static_cast<char>(std::numeric_limits<unsigned char>::max()));
+  db_->DeleteRange(WriteOptions(), handles_[1], beginKey, endKey);
+  db_->CompactRange(CompactRangeOptions(), handles_[1], nullptr, nullptr);
+  Close();
+
+  ASSERT_OK(RepairDB(dbname_, opts));
+}
+
 TEST_F(RepairTest, RepairMultipleColumnFamilies) {
   // Verify repair logic associates SST files with their original column
   // families.
